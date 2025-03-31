@@ -9,17 +9,21 @@ def main():
         log_level="error",   # Solo mostrar errores
     )
 
+    # MODIFICA ESTA LINEA PARA CAMBIAR LA CANTIDAD DE TIEMPO DURANTE EL MUESTREO
+    minutos = 1
+
     # Fuerza el factor de emisión (para versiones que no lo soportan en el constructor)
     os.environ["CO2_SIGNAL_API_KEY"] = "dummy"  # Evita errores de API
     os.environ["EMISSIONS_FACTOR"] = "0.26"     # Fija el factor a 0.26 kg CO2eq/kWh
 
+    segundos = minutos * 60
     try:
         print("Iniciando el monitoreo de energía y emisiones...")
         tracker.start()
 
         # Simula una carga de trabajo (reemplázalo con tu código real)
-        for i in range(10):
-            print(f"Ejecutando iteración {i + 1}/10...")
+        for i in range(segundos):
+            print(f"Ejecutando iteración {i + 1}/{segundos}...")
             time.sleep(1)  # Simula procesamiento
 
     finally:
