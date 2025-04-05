@@ -1,64 +1,60 @@
 from codecarbon import EmissionsTracker
+import psutil
 import time
 import os
 
+# Configura el factor de emisión (0.26 kg CO₂eq/kWh para tu país)
+os.environ["EMISSIONS_FACTOR"] = "0.26"
+os.environ["CO2_SIGNAL_API_KEY"] = "dummy"  # Evita errores de API
+
 def main():
-    # Configura el tracker (sin carbon_intensity en el constructor)
+    # Configuración
+    minutos_monitoreo = 1  # Cambia este valor para más tiempo
+    segundos = minutos_monitoreo * 60
+
+    # Inicializa el tracker de CodeCarbon
     tracker = EmissionsTracker(
-        save_to_file=False,  # No guardar en archivo
-        log_level="error",   # Solo mostrar errores
+        save_to_file=False,
+        log_level="error",
     )
 
-    # MODIFICA ESTA LINEA PARA CAMBIAR LA CANTIDAD DE TIEMPO DURANTE EL MUESTREO
-    minutos = 10
-
-    # Fuerza el factor de emisión (para versiones que no lo soportan en el constructor)
-    os.environ["CO2_SIGNAL_API_KEY"] = "dummy"  # Evita errores de API
-    os.environ["EMISSIONS_FACTOR"] = "0.26"     # Fija el factor a 0.26 kg CO2eq/kWh
-
-    segundos = minutos * 60
     try:
-        print("Iniciando el monitoreo de energía y emisiones...")
+        print(f"🔍 Monitoreando CPU por {minutos_monitoreo} minuto(s)...")
         tracker.start()
 
-        # Simula una carga de trabajo (reemplázalo con tu código real)
+        total_cpu_usage = 0.0
+        muestras = 0
+
         for i in range(segundos):
-            print(f"Ejecutando iteración {i + 1}/{segundos}...")
-            time.sleep(1)  # Simula procesamiento
+            cpu_usage = psutil.cpu_percent(interval=1)  # Uso de CPU en %
+            total_cpu_usage += cpu_usage
+            muestras += 1
+
+            print(f"⏳ [{i + 1}/{segundos}] CPU: {cpu_usage:.1f}%")
+            time.sleep(1)  # Intervalo de 1 segundo
+
+        avg_cpu = total_cpu_usage / muestras  # Uso promedio de CPU
 
     finally:
-        # arbol = 0,34 ton co2
-
-        # Detiene el tracker y muestra resultados
+        # Detiene el tracker y obtiene resultados
         emissions = tracker.stop()
+        energia_total = tracker._total_energy.kWh
 
-        # cantidad co2 en tanto tiempo (minutos)
-        cantidad = emissions
-        #1440 minutos en un dia
-        equivalencia_dia_anio = 365
-        equivalencia_doshoras = 120 / minutos
+        # Cálculos extrapolados (2 horas al día, 365 días)
+        horas_anio = 2 * 365
+        energia_anio = energia_total * (120 / minutos_monitoreo) * 365
+        emisiones_anio = emissions * (120 / minutos_monitoreo) * 365
 
-        energia_sesion = tracker._total_energy.kWh
-        emision_sesion = emissions
+        # Resultados
+        print("\n📊 --- Resultados ---")
+        print(f"⚡ Consumo de energía (sesión): {energia_total:.6f} kWh")
+        print(f"🌍 Emisiones CO₂eq (sesión): {emissions:.6f} kg")
+        print(f"🖥️ CPU promedio: {avg_cpu:.1f}%\n")
 
-        energia_doshoras = energia_sesion * equivalencia_doshoras
-        emision_doshoras = emision_sesion * equivalencia_doshoras
-
-        energia_anio = energia_doshoras * equivalencia_dia_anio
-        emision_anio = emision_doshoras * equivalencia_dia_anio
-
-        print("\n--- Resultados ---")
-        print(f"Consumo de energía de la sesión: {energia_sesion:.6f} kWh")
-        print(f"Emisiones de CO₂eq de la sesión: {emision_sesion:.6f} kg \n")
-
-        print(f"Consumo de energía de dos horas: {energia_doshoras:.6f} kWh")
-        print(f"Emisiones de CO₂eq de dos horas: {emision_doshoras:.6f} kg \n")
-
-        print("ESTIMADO")
-        print(f"Consumo de energía de dos horas por día al año: {energia_anio:.6f} kWh")
-        print(f"Emisiones de CO₂eq de dos horas por día al año: {emision_anio:.6f} kg \n")
-
-        print(f"Factor de emisión usado: 0.26 kg CO₂eq/kWh")
+        print("📅 **Extrapolación Anual (2 horas/día)**")
+        print(f"⚡ Energía/año: {energia_anio:.3f} kWh")
+        print(f"🌍 Emisiones/año: {emisiones_anio:.3f} kg CO₂eq")
+        print(f"🌳 Equivale a ~{emisiones_anio / 21:.2f} árboles/año*")
 
 if __name__ == "__main__":
     main()
